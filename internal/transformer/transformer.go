@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	AnnotationHelp = "__help__"
-	AnnotationType = "__type__"
+	AnnotationHelp = "prom_help"
+	AnnotationType = "prom_type"
 )
 
 func ToPrometheus(metrics []types.MetricPoint) string {
