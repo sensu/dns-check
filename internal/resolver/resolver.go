@@ -39,7 +39,7 @@ func (r Resolver) Resolve(domain string, server string) (rtt time.Duration, err 
 		},
 	}
 	opt.SetDo(true)
-	opt.SetUDPSize(512)
+	opt.SetUDPSize(4096)
 	m.Extra = append(m.Extra, opt)
 
 	m.SetQuestion(dns.Fqdn(domain), r.Type)
