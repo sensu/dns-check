@@ -21,7 +21,7 @@ type MessageExchangeor interface {
 	Exchange(m *dns.Msg, address string) (r *dns.Msg, rtt time.Duration, err error)
 }
 
-func (r Resolver) Resolve(domain string, server string) (rtt time.Duration, err error) {
+func (r Resolver) Resolve(domain, server string) (rtt time.Duration, err error) {
 	exchange := r.Exchangeor
 	if exchange == nil {
 		exchange = &dns.Client{}

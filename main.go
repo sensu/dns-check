@@ -28,6 +28,7 @@ type Config struct {
 	ValidateResolution bool
 	UnresolvedStatus   int
 
+	TCP            bool
 	DefaultMsgSize uint16
 }
 
@@ -93,6 +94,13 @@ var (
 			Default:  1,
 			Usage:    "exits with unresolved-status when validate-resolution is set",
 			Value:    &cfg.UnresolvedStatus,
+		}, {
+			Path:     "tcp",
+			Env:      "TCP",
+			Argument: "tcp",
+			Default:  false,
+			Usage:    "uses TCP connections to servers instead of UDP",
+			Value:    &cfg.TCP,
 		},
 	}
 )
@@ -145,12 +153,18 @@ func checkArgs(event *types.Event) (int, error) {
 }
 
 func executeCheck(event *types.Event) (int, error) {
+	var net string
+	if cfg.TCP {
+		net = "tcp"
+	}
 	resolv := resolver.Resolver{
 		Class:          dns.StringToClass[strings.ToUpper(cfg.Class)],
 		Type:           dns.StringToType[strings.ToUpper(cfg.Type)],
 		Port:           cfg.Port,
 		DefaultMsgSize: dns.DefaultMsgSize,
-		Exchangeor:     &dns.Client{},
+		Exchangeor: &dns.Client{
+			Net: net,
+		},
 	}
 	points := len(cfg.Domains) * len(cfg.Servers)
 	results := make(chan []types.MetricPoint, points)
