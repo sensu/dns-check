@@ -21,7 +21,9 @@ type MessageExchangeor interface {
 	Exchange(m *dns.Msg, address string) (r *dns.Msg, rtt time.Duration, err error)
 }
 
-func (r Resolver) Resolve(domain, server string) (rtt time.Duration, err error) {
+// Resolve records for a given domain/server
+// returns round trip time, a secure flag, and error
+func (r Resolver) Resolve(domain, server string) (rtt time.Duration, secure bool, err error) {
 	exchange := r.Exchangeor
 	if exchange == nil {
 		exchange = &dns.Client{}
@@ -49,5 +51,5 @@ func (r Resolver) Resolve(domain, server string) (rtt time.Duration, err error) 
 	if err == nil && resp.Rcode != dns.RcodeSuccess {
 		err = fmt.Errorf("records did not resolve: %v", resp)
 	}
-	return rtt, err
+	return rtt, resp.AuthenticatedData, err
 }

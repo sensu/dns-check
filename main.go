@@ -18,13 +18,13 @@ import (
 // Config represents the check plugin config.
 type Config struct {
 	sensu.PluginConfig
-	Domains []string
-	Servers []string
-	Class   string
-	Type    string
-	Port    string
-	// ValidateDNSSEC     bool
-	// InsecureStatus     int
+	Domains            []string
+	Servers            []string
+	Class              string
+	Type               string
+	Port               string
+	ValidateDNSSEC     bool
+	InsecureStatus     int
 	ValidateResolution bool
 	UnresolvedStatus   int
 
@@ -94,6 +94,19 @@ var (
 			Default:  1,
 			Usage:    "exits with unresolved-status when validate-resolution is set",
 			Value:    &cfg.UnresolvedStatus,
+		}, {
+			Path:     "validate-dnssec",
+			Env:      "VALIDATE_DNSSEC",
+			Argument: "validate-dnssec",
+			Usage:    "exits with insecure-status when server indicates it was unable to validate dnssec signatures for records",
+			Value:    &cfg.ValidateDNSSEC,
+		}, {
+			Path:     "insecure-status",
+			Env:      "INSECURE_STATUS",
+			Argument: "insecure-status",
+			Default:  1,
+			Usage:    "exits with insecure-status when validate-dnssec is set",
+			Value:    &cfg.InsecureStatus,
 		}, {
 			Path:     "tcp",
 			Env:      "TCP",
@@ -167,16 +180,27 @@ func executeCheck(event *types.Event) (int, error) {
 		},
 	}
 	points := len(cfg.Domains) * len(cfg.Servers)
-	results := make(chan []types.MetricPoint, points)
+	results := make(chan metricsResult, points)
 	for _, domain := range cfg.Domains {
 		for _, nameServer := range cfg.Servers {
-			go func(domain, server string, r chan<- []types.MetricPoint) {
-				rtt, err := resolv.Resolve(domain, server)
+			go func(domain, server string, r chan<- metricsResult) {
+				rtt, dnssec, err := resolv.Resolve(domain, server)
+
+				if cfg.ValidateResolution && err != nil {
+					r <- metricsResult{Error: &metricsError{Msg: fmt.Sprintf("server %s unable to resolve records for %s", server, domain), Code: cfg.UnresolvedStatus}}
+				}
+				if cfg.ValidateDNSSEC && !dnssec {
+					r <- metricsResult{Error: &metricsError{Msg: fmt.Sprintf("server %s unable to validate dnssec records for %s", server, domain), Code: cfg.InsecureStatus}}
+				}
 
 				ts := time.Now().UnixNano()
 				var resolved float64
 				if err != nil {
 					resolved = 1
+				}
+				var secure float64
+				if !dnssec {
+					secure = 1
 				}
 
 				tags := []*types.MetricTag{
@@ -212,18 +236,41 @@ func executeCheck(event *types.Event) (int, error) {
 						Value:     float64(rtt) * 1e-9,
 						Timestamp: ts,
 						Tags:      append([]*types.MetricTag{{Name: transformer.AnnotationHelp, Value: "round trip response time to resolve the query"}}, tags...),
+					}, types.MetricPoint{
+						Name:      "dns_secure",
+						Value:     secure,
+						Timestamp: ts,
+						Tags:      append([]*types.MetricTag{{Name: transformer.AnnotationHelp, Value: "binary result 0 when the server indicates dnssec signatures were validated, otherwise 1"}}, tags...),
 					})
 				}
-				r <- metrics
+				r <- metricsResult{Metrics: metrics}
 			}(domain, nameServer, results)
 		}
 	}
 	var metrics []types.MetricPoint
 	for i := 0; i < points; i++ {
 		rs := <-results
-		metrics = append(metrics, rs...)
+		if rs.Error != nil {
+			fmt.Printf("dns-check failed with error: %s\n", rs.Error.Error())
+			return rs.Error.Code, nil
+		}
+		metrics = append(metrics, rs.Metrics...)
 	}
 	fmt.Println(transformer.ToPrometheus(metrics))
 
 	return sensu.CheckStateOK, nil
+}
+
+type metricsResult struct {
+	Metrics []types.MetricPoint
+	Error   *metricsError
+}
+
+type metricsError struct {
+	Msg  string
+	Code int
+}
+
+func (m metricsError) Error() string {
+	return m.Msg
 }
