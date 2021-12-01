@@ -48,6 +48,9 @@ func (r Resolver) Resolve(domain, server string) (rtt time.Duration, secure bool
 	m.Question[0].Qclass = r.Class
 
 	resp, rtt, err := exchange.Exchange(m, net.JoinHostPort(server, r.Port))
+	if err != nil {
+		return rtt, false, err
+	}
 	if err == nil && resp.Rcode != dns.RcodeSuccess {
 		err = fmt.Errorf("records did not resolve: %v", resp)
 	}

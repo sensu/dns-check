@@ -184,6 +184,7 @@ func executeCheck(event *types.Event) (int, error) {
 	for _, domain := range cfg.Domains {
 		for _, nameServer := range cfg.Servers {
 			go func(domain, server string, r chan<- metricsResult) {
+				ts := time.Now().UnixNano()
 				rtt, dnssec, err := resolv.Resolve(domain, server)
 
 				if cfg.ValidateResolution && err != nil {
@@ -193,7 +194,6 @@ func executeCheck(event *types.Event) (int, error) {
 					r <- metricsResult{Error: &metricsError{Msg: fmt.Sprintf("server %s unable to validate dnssec records for %s", server, domain), Code: cfg.InsecureStatus}}
 				}
 
-				ts := time.Now().UnixNano()
 				var resolved float64
 				if err != nil {
 					resolved = 1
@@ -229,7 +229,7 @@ func executeCheck(event *types.Event) (int, error) {
 						Tags:      append([]*types.MetricTag{{Name: transformer.AnnotationHelp, Value: "binary result 0 when the query can be resolved, otherwise 1"}}, tags...),
 					},
 				}
-				// only include dns_response_time when resolved
+				// only include dns_response_time and dns_secure when resolved
 				if resolved == 0 {
 					metrics = append(metrics, types.MetricPoint{
 						Name:      "dns_response_time",
