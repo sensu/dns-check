@@ -2,110 +2,36 @@
 ![Go Test](https://github.com/sensu/dns-check/workflows/Go%20Test/badge.svg)
 ![goreleaser](https://github.com/sensu/dns-check/workflows/goreleaser/badge.svg)
 
-# Check Plugin Template
+# DNS Check
 
 ## Overview
-check-plugin-template is a template repository which wraps the [Sensu Plugin SDK][2].
-To use this project as a template, click the "Use this template" button from the main project page.
-Once the repository is created from this template, you can use the [Sensu Plugin Tool][9] to
-populate the templated fields with the proper values.
+[DNS Check][1] is a [Sensu Metrics Check][2] for monitoring dns resolver performance and behavior.
 
-## Functionality
+### Output Metrics
 
-After successfully creating a project from this template, update the `Config` struct with any
-configuration options for the plugin, map those values as plugin options in the variable `options`,
-and customize the `checkArgs` and `executeCheck` functions in [main.go][7].
-
-When writing or updating a plugin's README from this template, review the Sensu Community
-[plugin README style guide][3] for content suggestions and guidance. Remove everything
-prior to `# dns-check` from the generated README file, and add additional context about the
-plugin per the style guide.
-
-## Releases with Github Actions
-
-To release a version of your project, simply tag the target sha with a semver release without a `v`
-prefix (ex. `1.0.0`). This will trigger the [GitHub action][5] workflow to [build and release][4]
-the plugin with goreleaser. Register the asset with [Bonsai][8] to share it with the community!
-
-***
-
-# dns-check
-
-## Table of Contents
-- [Overview](#overview)
-- [Files](#files)
-- [Usage examples](#usage-examples)
-- [Configuration](#configuration)
-  - [Asset registration](#asset-registration)
-  - [Check definition](#check-definition)
-- [Installation from source](#installation-from-source)
-- [Additional notes](#additional-notes)
-- [Contributing](#contributing)
-
-## Overview
-
-The dns-check is a [Sensu Check][6] that ...
-
-## Files
+| Name                  | Description   |
+|-----------------------|---------------|
+| dns_response_time      | Response time for a given dns query. |
+| dns_resolved   | Binary signal returns 0 when the record can be resolved. Otherwise 1.  |
+| dns_secure    | Binary signal returns 0 when the server response indicates that DNSSEC signatures have been validated for all records. Otherwise 1. |
 
 ## Usage examples
 
-## Configuration
-
-### Asset registration
-
-[Sensu Assets][10] are the best way to make use of this plugin. If you're not using an asset, please
-consider doing so! If you're using sensuctl 5.13 with Sensu Backend 5.13 or later, you can use the
-following command to add the asset:
-
 ```
-sensuctl asset add sensu/dns-check
-```
-
-If you're using an earlier version of sensuctl, you can find the asset on the [Bonsai Asset Index][https://bonsai.sensu.io/assets/sensu/dns-check].
-
-### Check definition
-
-```yml
----
-type: CheckConfig
-api_version: core/v2
-metadata:
-  name: dns-check
-  namespace: default
-spec:
-  command: dns-check --example example_arg
-  subscriptions:
-  - system
-  runtime_assets:
-  - sensu/dns-check
+➜  dns-check -s "8.8.8.8,8.8.4.4" -d "google.com"
+# HELP dns_resolved binary result 0 when the query can be resolved, otherwise 1
+# TYPE dns_resolved gauge
+dns_resolved{servername="8.8.4.4", domain="google.com", record_class="IN", record_type="A"} 0.000000 1638381834985
+dns_resolved{servername="8.8.8.8", domain="google.com", record_class="IN", record_type="A"} 0.000000 1638381834985
+# HELP dns_response_time round trip response time to resolve the query
+# TYPE dns_response_time gauge
+dns_response_time{servername="8.8.4.4", domain="google.com", record_class="IN", record_type="A"} 0.010874 1638381834985
+dns_response_time{servername="8.8.8.8", domain="google.com", record_class="IN", record_type="A"} 0.011209 1638381834985
+# HELP dns_secure binary result 0 when the server indicates dnssec signatures were validated, otherwise 1
+# TYPE dns_secure gauge
+dns_secure{servername="8.8.4.4", domain="google.com", record_class="IN", record_type="A"} 1.000000 1638381834985
+dns_secure{servername="8.8.8.8", domain="google.com", record_class="IN", record_type="A"} 1.000000 1638381834985
 ```
 
-## Installation from source
-
-The preferred way of installing and deploying this plugin is to use it as an Asset. If you would
-like to compile and install the plugin from source or contribute to it, download the latest version
-or create an executable script from this source.
-
-From the local path of the dns-check repository:
-
-```
-go build
-```
-
-## Additional notes
-
-## Contributing
-
-For more information about contributing to this plugin, see [Contributing][1].
-
-[1]: https://github.com/sensu/sensu-go/blob/master/CONTRIBUTING.md
-[2]: https://github.com/sensu-community/sensu-plugin-sdk
-[3]: https://github.com/sensu-plugins/community/blob/master/PLUGIN_STYLEGUIDE.md
-[4]: https://github.com/sensu-community/check-plugin-template/blob/master/.github/workflows/release.yml
-[5]: https://github.com/sensu-community/check-plugin-template/actions
-[6]: https://docs.sensu.io/sensu-go/latest/reference/checks/
-[7]: https://github.com/sensu-community/check-plugin-template/blob/master/main.go
-[8]: https://bonsai.sensu.io/
-[9]: https://github.com/sensu-community/sensu-plugin-tool
-[10]: https://docs.sensu.io/sensu-go/latest/reference/assets/
+[1]: https://github.com/sensu/dns-check
+[2]: https://docs.sensu.io/sensu-go/latest/observability-pipeline/observe-schedule/checks/
