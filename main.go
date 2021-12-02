@@ -187,11 +187,12 @@ func executeCheck(event *types.Event) (int, error) {
 				ts := time.Now().UnixNano()
 				rtt, dnssec, err := resolv.Resolve(domain, server)
 
-				if cfg.ValidateResolution && err != nil {
-					r <- metricsResult{Error: &metricsError{Msg: fmt.Sprintf("server %s unable to resolve records for %s", server, domain), Code: cfg.UnresolvedStatus}}
-				}
+				var result metricsResult
 				if cfg.ValidateDNSSEC && !dnssec {
-					r <- metricsResult{Error: &metricsError{Msg: fmt.Sprintf("server %s unable to validate dnssec records for %s", server, domain), Code: cfg.InsecureStatus}}
+					result.Code = cfg.InsecureStatus
+				}
+				if cfg.ValidateResolution && err != nil {
+					result.Code = cfg.UnresolvedStatus
 				}
 
 				var resolved float64
@@ -228,49 +229,42 @@ func executeCheck(event *types.Event) (int, error) {
 						Timestamp: ts,
 						Tags:      append([]*types.MetricTag{{Name: transformer.AnnotationHelp, Value: "binary result 0 when the query can be resolved, otherwise 1"}}, tags...),
 					},
-				}
-				// only include dns_response_time and dns_secure when resolved
-				if resolved == 0 {
-					metrics = append(metrics, types.MetricPoint{
+					{
 						Name:      "dns_response_time",
 						Value:     float64(rtt) * 1e-9,
 						Timestamp: ts,
-						Tags:      append([]*types.MetricTag{{Name: transformer.AnnotationHelp, Value: "round trip response time to resolve the query"}}, tags...),
-					}, types.MetricPoint{
+						Tags:      append([]*types.MetricTag{{Name: transformer.AnnotationHelp, Value: "round trip response time to resolve the query in seconds"}}, tags...),
+					}, {
 						Name:      "dns_secure",
 						Value:     secure,
 						Timestamp: ts,
 						Tags:      append([]*types.MetricTag{{Name: transformer.AnnotationHelp, Value: "binary result 0 when the server indicates dnssec signatures were validated, otherwise 1"}}, tags...),
-					})
+					},
 				}
-				r <- metricsResult{Metrics: metrics}
+
+				result.Metrics = metrics
+				r <- result
 			}(domain, nameServer, results)
 		}
 	}
+
 	var metrics []types.MetricPoint
+	var checkStatus int
 	for i := 0; i < points; i++ {
 		rs := <-results
-		if rs.Error != nil {
-			fmt.Printf("dns-check failed with error: %s\n", rs.Error.Error())
-			return rs.Error.Code, nil
+		// exit with the largest exit code
+		if rs.Code > checkStatus {
+			checkStatus = rs.Code
 		}
 		metrics = append(metrics, rs.Metrics...)
 	}
 	fmt.Println(transformer.ToPrometheus(metrics))
 
-	return sensu.CheckStateOK, nil
+	return checkStatus, nil
 }
 
+// metricsResult set of metrics from dns check and optional return code
 type metricsResult struct {
 	Metrics []types.MetricPoint
-	Error   *metricsError
-}
-
-type metricsError struct {
-	Msg  string
-	Code int
-}
-
-func (m metricsError) Error() string {
-	return m.Msg
+	Code    int
 }
