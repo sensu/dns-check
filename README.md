@@ -33,5 +33,9 @@ dns_secure{servername="8.8.4.4", domain="google.com", record_class="IN", record_
 dns_secure{servername="8.8.8.8", domain="google.com", record_class="IN", record_type="A"} 1.000000 1638381834985
 ```
 
+## DNSSEC
+
+The DNS Check tool does no signature validation or verification of its own, but instead relies solely on the upstream resolver to inform the `dns_secure` metric. `dns_secure` is set 0 (OK) when the AD Bit is set in the response regardless of response status or answer.
+
 [1]: https://github.com/sensu/dns-check
 [2]: https://docs.sensu.io/sensu-go/latest/observability-pipeline/observe-schedule/checks/
