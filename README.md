@@ -21,16 +21,16 @@
 ➜  dns-check -s "8.8.8.8,8.8.4.4" -d "google.com"
 # HELP dns_resolved binary result 0 when the query can be resolved, otherwise 1
 # TYPE dns_resolved gauge
-dns_resolved{servername="8.8.4.4", domain="google.com", record_class="IN", record_type="A"} 0.000000 1638381834985
-dns_resolved{servername="8.8.8.8", domain="google.com", record_class="IN", record_type="A"} 0.000000 1638381834985
-# HELP dns_response_time round trip response time to resolve the query
+dns_resolved{servername="8.8.8.8", domain="google.com", record_class="IN", record_type="A"} 0.000000 1639497858941
+dns_resolved{servername="8.8.4.4", domain="google.com", record_class="IN", record_type="A"} 0.000000 1639497858941
+# HELP dns_response_time round trip response time to resolve the query in seconds
 # TYPE dns_response_time gauge
-dns_response_time{servername="8.8.4.4", domain="google.com", record_class="IN", record_type="A"} 0.010874 1638381834985
-dns_response_time{servername="8.8.8.8", domain="google.com", record_class="IN", record_type="A"} 0.011209 1638381834985
+dns_response_time{servername="8.8.8.8", domain="google.com", record_class="IN", record_type="A"} 0.014646 1639497858941
+dns_response_time{servername="8.8.4.4", domain="google.com", record_class="IN", record_type="A"} 0.014858 1639497858941
 # HELP dns_secure binary result 0 when the server indicates dnssec signatures were validated, otherwise 1
 # TYPE dns_secure gauge
-dns_secure{servername="8.8.4.4", domain="google.com", record_class="IN", record_type="A"} 1.000000 1638381834985
-dns_secure{servername="8.8.8.8", domain="google.com", record_class="IN", record_type="A"} 1.000000 1638381834985
+dns_secure{servername="8.8.8.8", domain="google.com", record_class="IN", record_type="A"} 1.000000 1639497858941
+dns_secure{servername="8.8.4.4", domain="google.com", record_class="IN", record_type="A"} 1.000000 1639497858941
 ```
 
 ## DNSSEC
