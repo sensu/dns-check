@@ -8,6 +8,14 @@ require (
 )
 
 require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
+)
+
+require (
 	github.com/coreos/etcd v3.3.22+incompatible // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
@@ -29,7 +37,7 @@ require (
 	github.com/prometheus/common v0.4.0
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	github.com/sensu/sensu-go/api/core/v2 v2.3.0 // indirect
+	github.com/sensu/sensu-go/api/core/v2 v2.3.0
 	github.com/sensu/sensu-licensing v0.1.2 // indirect
 	github.com/sensu/sensu-plugin-sdk v0.14.1
 	github.com/sirupsen/logrus v1.6.0 // indirect
