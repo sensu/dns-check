@@ -33,7 +33,7 @@ type Config struct {
 }
 
 var (
-	cfg = Config{
+	plugin = Config{
 		PluginConfig: sensu.PluginConfig{
 			Name:     "dns-check",
 			Short:    "DNS Check",
@@ -49,14 +49,14 @@ var (
 			Argument:  "domain",
 			Shorthand: "d",
 			Usage:     "Comma delimited list of domains",
-			Value:     &cfg.Domains,
+			Value:     &plugin.Domains,
 		}, {
 			Path:      "server",
 			Env:       "SERVER",
 			Argument:  "server",
 			Shorthand: "s",
 			Usage:     "Comma delimited list DNS servers to query",
-			Value:     &cfg.Servers,
+			Value:     &plugin.Servers,
 		}, {
 			Path:      "class",
 			Env:       "CLASS",
@@ -64,7 +64,7 @@ var (
 			Shorthand: "c",
 			Default:   "IN",
 			Usage:     "Record Class to query",
-			Value:     &cfg.Class,
+			Value:     &plugin.Class,
 		}, {
 			Path:      "type",
 			Env:       "TYPE",
@@ -72,7 +72,7 @@ var (
 			Shorthand: "t",
 			Default:   "A",
 			Usage:     "Record Type to query",
-			Value:     &cfg.Type,
+			Value:     &plugin.Type,
 		}, {
 			Path:      "port",
 			Env:       "PORT",
@@ -80,40 +80,40 @@ var (
 			Shorthand: "p",
 			Default:   "53",
 			Usage:     "DNS server port",
-			Value:     &cfg.Port,
+			Value:     &plugin.Port,
 		}, {
 			Path:     "validate-resolution",
 			Env:      "VALIDATE_RESOLUTION",
 			Argument: "validate-resolution",
 			Usage:    "exits with unresolved-status if any domain entries are unresolved",
-			Value:    &cfg.ValidateResolution,
+			Value:    &plugin.ValidateResolution,
 		}, {
 			Path:     "unresolved-status",
 			Env:      "UNRESOLVED_STATUS",
 			Argument: "unresolved-status",
 			Default:  1,
 			Usage:    "exits with unresolved-status when validate-resolution is set",
-			Value:    &cfg.UnresolvedStatus,
+			Value:    &plugin.UnresolvedStatus,
 		}, {
 			Path:     "validate-dnssec",
 			Env:      "VALIDATE_DNSSEC",
 			Argument: "validate-dnssec",
 			Usage:    "exits with insecure-status when server indicates it was unable to validate dnssec signatures for records",
-			Value:    &cfg.ValidateDNSSEC,
+			Value:    &plugin.ValidateDNSSEC,
 		}, {
 			Path:     "insecure-status",
 			Env:      "INSECURE_STATUS",
 			Argument: "insecure-status",
 			Default:  1,
 			Usage:    "exits with insecure-status when validate-dnssec is set",
-			Value:    &cfg.InsecureStatus,
+			Value:    &plugin.InsecureStatus,
 		}, {
 			Path:     "tcp",
 			Env:      "TCP",
 			Argument: "tcp",
 			Default:  false,
 			Usage:    "uses TCP connections to servers instead of UDP",
-			Value:    &cfg.TCP,
+			Value:    &plugin.TCP,
 		},
 	}
 )
@@ -131,16 +131,16 @@ func main() {
 		useStdin = true
 	}
 
-	check := sensu.NewGoCheck(&cfg.PluginConfig, options, checkArgs, executeCheck, useStdin)
+	check := sensu.NewGoCheck(&plugin.PluginConfig, options, checkArgs, executeCheck, useStdin)
 	check.Execute()
 }
 
 func checkArgs(event *types.Event) (int, error) {
-	if len(cfg.Domains) == 0 {
+	if len(plugin.Domains) == 0 {
 		return sensu.CheckStateWarning, fmt.Errorf("must supply at least one domain to check")
 	}
 	var invalid []string
-	for _, domain := range cfg.Domains {
+	for _, domain := range plugin.Domains {
 		if _, ok := dns.IsDomainName(domain); !ok {
 			invalid = append(invalid, domain)
 		}
@@ -148,51 +148,51 @@ func checkArgs(event *types.Event) (int, error) {
 	if len(invalid) > 0 {
 		return sensu.CheckStateWarning, fmt.Errorf("invalid domain names specified: %s", invalid)
 	}
-	if len(cfg.Servers) == 0 {
+	if len(plugin.Servers) == 0 {
 		return sensu.CheckStateWarning, fmt.Errorf("must supply at least one name server")
 	}
-	if _, ok := dns.StringToType[strings.ToUpper(cfg.Type)]; !ok {
-		return sensu.CheckStateWarning, fmt.Errorf("invalid record type: %s", cfg.Type)
+	if _, ok := dns.StringToType[strings.ToUpper(plugin.Type)]; !ok {
+		return sensu.CheckStateWarning, fmt.Errorf("invalid record type: %s", plugin.Type)
 	}
-	if _, ok := dns.StringToClass[strings.ToUpper(cfg.Class)]; !ok {
-		return sensu.CheckStateWarning, fmt.Errorf("invalid record class: %s", cfg.Class)
+	if _, ok := dns.StringToClass[strings.ToUpper(plugin.Class)]; !ok {
+		return sensu.CheckStateWarning, fmt.Errorf("invalid record class: %s", plugin.Class)
 	}
-	if port, err := strconv.Atoi(cfg.Port); err != nil {
-		return sensu.CheckStateWarning, fmt.Errorf("port must be numeric: %s", cfg.Port)
+	if port, err := strconv.Atoi(plugin.Port); err != nil {
+		return sensu.CheckStateWarning, fmt.Errorf("port must be numeric: %s", plugin.Port)
 	} else if port < 1 {
-		return sensu.CheckStateWarning, fmt.Errorf("invalid port number: %s", cfg.Port)
+		return sensu.CheckStateWarning, fmt.Errorf("invalid port number: %s", plugin.Port)
 	}
 	return sensu.CheckStateOK, nil
 }
 
-func executeCheck(event *types.Event) (int, error) {
+func collectMetrics() ([]types.MetricPoint, int, error) {
 	var net string
-	if cfg.TCP {
+	if plugin.TCP {
 		net = "tcp"
 	}
 	resolv := resolver.Resolver{
-		Class:          dns.StringToClass[strings.ToUpper(cfg.Class)],
-		Type:           dns.StringToType[strings.ToUpper(cfg.Type)],
-		Port:           cfg.Port,
+		Class:          dns.StringToClass[strings.ToUpper(plugin.Class)],
+		Type:           dns.StringToType[strings.ToUpper(plugin.Type)],
+		Port:           plugin.Port,
 		DefaultMsgSize: dns.DefaultMsgSize,
 		Exchangeor: &dns.Client{
 			Net: net,
 		},
 	}
-	points := len(cfg.Domains) * len(cfg.Servers)
+	points := len(plugin.Domains) * len(plugin.Servers)
 	results := make(chan metricsResult, points)
-	for _, domain := range cfg.Domains {
-		for _, nameServer := range cfg.Servers {
+	for _, domain := range plugin.Domains {
+		for _, nameServer := range plugin.Servers {
 			go func(domain, server string, r chan<- metricsResult) {
 				ts := time.Now().UnixNano()
 				rtt, dnssec, err := resolv.Resolve(domain, server)
 
 				var result metricsResult
-				if cfg.ValidateDNSSEC && !dnssec {
-					result.Code = cfg.InsecureStatus
+				if plugin.ValidateDNSSEC && !dnssec {
+					result.Code = plugin.InsecureStatus
 				}
-				if cfg.ValidateResolution && err != nil {
-					result.Code = cfg.UnresolvedStatus
+				if plugin.ValidateResolution && err != nil {
+					result.Code = plugin.UnresolvedStatus
 				}
 
 				var resolved float64
@@ -215,11 +215,11 @@ func executeCheck(event *types.Event) (int, error) {
 					},
 					{
 						Name:  "record_class",
-						Value: strings.ToUpper(cfg.Class),
+						Value: strings.ToUpper(plugin.Class),
 					},
 					{
 						Name:  "record_type",
-						Value: strings.ToUpper(cfg.Type),
+						Value: strings.ToUpper(plugin.Type),
 					},
 				}
 				metrics := []types.MetricPoint{
@@ -258,6 +258,12 @@ func executeCheck(event *types.Event) (int, error) {
 		}
 		metrics = append(metrics, rs.Metrics...)
 	}
+	return metrics, checkStatus, nil
+}
+
+func executeCheck(event *types.Event) (int, error) {
+
+	metrics, checkStatus, _ := collectMetrics()
 	fmt.Println(transformer.ToPrometheus(metrics))
 
 	return checkStatus, nil
